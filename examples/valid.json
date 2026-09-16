@@ -1,0 +1,25 @@
+{
+  "contract": {
+    "call_id": "example-1",
+    "fields": [
+      {
+        "path": "/data/value",
+        "type": "integer",
+        "minimum": 0
+      }
+    ]
+  },
+  "result": {
+    "call_id": "example-1",
+    "status": "ok",
+    "data": {
+      "value": 42
+    }
+  },
+  "claims": [
+    {
+      "path": "/data/value",
+      "value": 42
+    }
+  ]
+}
