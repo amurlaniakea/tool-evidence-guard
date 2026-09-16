@@ -11,6 +11,21 @@ readme = "README.md"
 license = {text = "AGPL-3.0-or-later"}
 authors = [{name = "Pedro Sordo Martínez", email = "amurlaniakea@gmail.com"}]
 dependencies = []
+classifiers = [
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+]
+
+[project.urls]
+Homepage = "https://github.com/amurlaniakea/tool-evidence-guard"
+Repository = "https://github.com/amurlaniakea/tool-evidence-guard"
+Issues = "https://github.com/amurlaniakea/tool-evidence-guard/issues"
+Paper = "https://arxiv.org/abs/2609.14758"
 
 [project.scripts]
 tool-evidence-guard = "tool_evidence_guard.cli:main"

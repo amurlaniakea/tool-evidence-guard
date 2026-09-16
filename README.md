@@ -1,65 +1,76 @@
 # Tool Evidence Guard
 
-Verificador local de resultados de herramientas y afirmaciones estructuradas. Python >=3.10, sin dependencias de ejecución ni API de pago. Versión 0.1.0.
+Deterministic, contract-based verification of tool results and exact scalar claims for LLM agents. Pure Python, zero runtime dependencies, runs fully local.
 
-## Uso
+LLM agents keep answering after a tool fails: they assert values the tool never returned, read `null` as zero, or relay `[REDACTED]` as a real answer ([arXiv:2609.14758](https://arxiv.org/abs/2609.14758) measured up to 45.3% dishonest answers when the failure is not signalled). This library checks the evidence **before** the answer: a pre-registered contract states what a usable result must contain, and every claim the agent wants to make must match the captured data exactly.
 
-Desde `/home/sil/tool-evidence-guard`:
+**`retrieval_status: OK` means contract conformance — not truth.** The contract and the captured result must come from your trusted harness, never from the model. What this checks is deterministic and auditable; what the model says remains unverified unless a claim proves it.
+
+## Features
+
+- Typed fields at JSON Pointer paths (`integer`, `number`, `string`, `boolean`) with optional `minimum`, `maximum`, `enum`
+- Detects: declared errors, missing fields, wrong types, `null`, empty strings, redaction placeholders (`[REDACTED]`, `\ufffd`, `n/a`), truncation/corruption/staleness flags, mismatched or fabricated claims
+- Freshness opt-in: `max_age_seconds` + timezone-aware `observed_at`, future timestamps rejected
+- Exact scalar claim checking (no bool/int confusion, no NaN, no dict comparison) — `0` and `false` are valid values, not absences
+- Hard input limits: 1 MiB CLI / 10,000-node API, depth 64, strict JSON (no duplicate keys, no NaN/Infinity)
+- Value-free report: reasons are codes, never echoed content; exit codes 0/1/2 for CI gates
+
+## Install
 
 ```sh
-python3 -m tool_evidence_guard examples/valid.json
-python3 -m tool_evidence_guard examples/unusable.json
-python3 -m unittest discover -s tests -q
-```
-
-El primer ejemplo devuelve `OK`, el segundo `FAILED`. Son fixtures sintéticos de demostración, no resultados reales ni el dataset del paper.
-
-Instalación aislada:
-
-```sh
+git clone https://github.com/amurlaniakea/tool-evidence-guard.git
+cd tool-evidence-guard
 python3 -m venv .venv
 .venv/bin/python -m pip install -e .
-.venv/bin/tool-evidence-guard examples/valid.json
 ```
 
-También acepta stdin (sin argumento o `-`). Códigos: 0 = conforme; 1 = rechazo; 2 = entrada ilegible, demasiado grande o JSON inválido. El informe no reproduce valores ni errores originales.
+Requires Python >= 3.10. No third-party dependencies.
 
-## Contrato de entrada
+## Usage
 
-Documento JSON con `contract`, `result` y opcionalmente `claims`; otras claves raíz se rechazan.
+```sh
+.venv/bin/tool-evidence-guard examples/valid.json     # exit 0: {"retrieval_status": "OK", ...}
+.venv/bin/tool-evidence-guard examples/unusable.json  # exit 1: FAILED + reasons
+echo '< json >' | .venv/bin/tool-evidence-guard       # stdin also accepted
+```
 
-- `contract.call_id`: identificador no vacío, asignado por el adaptador de confianza antes de ejecutar. `fields`: lista no vacía de reglas. `max_age_seconds`: opcional, positivo y finito.
-- Cada regla contiene `path` (JSON Pointer bajo `/data/`) y `type` (`integer`, `number`, `string`, `boolean`). Opciones: `minimum`, `maximum` numéricos; `enum` de escalares del tipo declarado. Reglas desconocidas, duplicadas o mal escritas se rechazan. No es un validador JSON Schema completo.
-- `result.status` debe ser exactamente `ok` y `call_id` debe coincidir. `data` contiene la salida capturada. La presencia de `error` rechaza incluso si es null: el adaptador debe omitirlo en éxito. Flags opcionales `truncated`, `stale`, `corrupted`, `redacted` deben ser booleanos: true rechaza. Otros metadatos se permiten, pero no son evidencia.
-- `observed_at`: ISO 8601 con zona horaria. Es obligatorio cuando se exige frescura. Se rechazan fechas futuras. Debe proceder de la fuente/medición, no del momento de copiar un dato viejo.
-- `claims`: lista de objetos exactamente `{ "path": ..., "value": ... }`. Solo igualdad escalar exacta y con el mismo tipo; no se interpretan prosa ni cálculos. Sin claims se verifican campos, pero `supported_claims` es 0.
+Or as a module: `python3 -m tool_evidence_guard examples/valid.json`
 
-Cada regla debe expresar lo que necesita la tarea ANTES de ver la respuesta. Para afirmar que una operación terminó, exigir un estado final y evidencia de lectura posterior, no solamente `status:ok` del envío.
+Exit codes: `0` conformant · `1` rejection · `2` unreadable input (invalid JSON, too large, I/O). Use exit 1 as a CI/pre-commit gate.
 
-## Comportamiento y límites
+## Input contract
 
-Detecta errores declarados, campos ausentes, tipos incorrectos, null, cadenas vacías, marcadores habituales de redacción, caracteres de sustitución, truncamiento declarado, datos antiguos, límites numéricos, enumeraciones y claims que contradicen los datos. Cero y false no se confunden con ausencia.
+A JSON document with `contract`, `result`, optional `claims` (unknown root keys rejected):
 
-`retrieval_status: OK` significa conformidad con ESTE contrato; no certifica verdad, autoría, permisos, actualidad si no se exige, ni ejecución real. Un texto corrupto no reconocido puede pasar como string. Un proveedor puede mentir. El contrato y la captura son parte de la base de confianza: si el modelo fabrica ambos, este verificador no puede descubrirlo.
+- `contract.call_id` — non-empty string, assigned by your trusted harness before execution; must equal `result.call_id`
+- `contract.fields` — list of rules: `path` (JSON Pointer under `/data/`) + `type`; optional `minimum`/`maximum`/`enum`
+- `result.status` must be exactly `ok`; `error` key present means failure even if null; optional boolean flags `truncated`, `stale`, `corrupted`, `redacted` reject when `true`
+- `result.observed_at` — ISO 8601 with timezone; required when freshness is enforced
+- `claims` — list of exactly `{"path": ..., "value": ...}`; only exact scalar equality with the captured value counts. Zero claims verified → `supported_claims: 0` approves nothing
 
-No analiza lenguaje natural, no es una defensa general contra prompt injection, no valida firmas, no elimina todas las alucinaciones y no intercepta automáticamente Hermes/Tars. No consulta red ni ejecuta las herramientas. La skill ofrece uso manual/asistido; un bloqueo obligatorio en el runtime queda pendiente.
+Each rule must state what the task needs **before** seeing the response. For "did the operation complete" claims, require a final state plus postcondition evidence — not just the submission's `status:ok`.
 
-CLI: máximo 1 MiB, JSON UTF-8 estricto sin claves duplicadas ni NaN/Infinity. API: máximo 10.000 nodos, profundidad 64 y presupuesto de caracteres. Solo estructuras JSON ordinarias; no objetos Python personalizados. El rechazo es global: si algo falla, cero claims aprobados.
+Full details: [README.es.md](README.es.md) (Spanish, complete contract reference).
 
-## Arquitectura
+## Honest limits
 
-- `tool_evidence_guard/__init__.py`: reglas, límites, resolución de rutas, frescura y claims.
-- `tool_evidence_guard/cli.py`: lectura limitada y JSON estricto.
-- `tool_evidence_guard/__main__.py`: entrada `python -m`.
-- `tests/`: pruebas unitarias y CLI por subprocess.
-- `examples/`: entradas sintéticas y demostración local.
-- `docs/`: fundamento, verificación y límites.
+- `OK` = this contract held. It does not certify truth, authorship, permissions, or real execution
+- A forged contract + captured payload passes: trust must be established outside the model
+- Prose is not analyzed; unmarked corruption in an ordinary string can pass
+- Call IDs are correlation, not authentication or signatures
+- Not an automatic Hermes/Tars plugin (yet) — use the CLI/library where you decide it matters
 
-## Fuente y evaluación
+## Testing
 
-Inspirado en Sethi et al., “Fabrication After Tool Failure: Tool-Augmented Agents Assert Values Their Tools Did Not Return”, arXiv:2609.14758v1 (13-09-2026).
-https://arxiv.org/abs/2609.14758
+```sh
+.venv/bin/python -m unittest discover -s tests -q   # 51 tests
+.venv/bin/python examples/local_demo.py             # real file read + controlled mismatch
+```
 
-El paper estudia un indicador generado por el modelo y una intervención de prompt. Este proyecto aplica contratos deterministas: NO reproduce su experimento ni hereda sus porcentajes. Su apéndice A no ofrece aún enlace al repositorio; la búsqueda pública realizada no localizó una implementación oficial verificable. La publicación contiene límites y diferencias entre protocolos que impiden extrapolar una tasa universal.
+## Origin
 
-AGPL-3.0-or-later. Copyright 2026 Pedro Sordo Martínez <amurlaniakea@gmail.com>. Texto completo: `LICENSE.AGPL`.
+Design informed by *"Fabrication After Tool Failure: Tool-Augmented Agents Assert Values Their Tools Did Not Return"* ([arXiv:2609.14758](https://arxiv.org/abs/2609.14758)). Independent implementation: this is a deterministic contract checker, **not** a reproduction of that paper's model-emitted flag, and none of its measured percentages apply here.
+
+## License
+
+AGPL-3.0-or-later © 2026 Pedro Sordo Martínez. See [LICENSE](LICENSE) and [LICENSE.AGPL](LICENSE.AGPL).
