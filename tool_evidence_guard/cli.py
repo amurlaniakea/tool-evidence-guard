@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2026 Pedro Sordo Martínez <amurlaniakea@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """Read one bounded JSON document, emit a value-free verification report."""
 import argparse
