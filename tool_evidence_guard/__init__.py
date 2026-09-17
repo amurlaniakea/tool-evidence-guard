@@ -113,12 +113,12 @@ def _freshness(result, contract):
     timestamp = result.get("observed_at")
     try:
         if not isinstance(timestamp, str):
-            raise ValueError
+            raise TypeError
         observed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
         if observed.tzinfo is None:
             raise ValueError
         age = (datetime.now(timezone.utc) - observed).total_seconds()
-    except (ValueError, OverflowError):
+    except (TypeError, ValueError, OverflowError):
         return ["INVALID_TIMESTAMP"]
     if age < 0:
         return ["FUTURE_TIMESTAMP"]
