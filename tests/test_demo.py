@@ -1,10 +1,9 @@
 # SPDX-FileCopyrightText: 2026 Pedro Sordo Martínez <amurlaniakea@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 import json
-from pathlib import Path
 import subprocess
-import sys
 import unittest
+from pathlib import Path
 
 
 class DemoTests(unittest.TestCase):
@@ -12,7 +11,7 @@ class DemoTests(unittest.TestCase):
         script = Path(__file__).resolve().parents[1] / 'examples' / 'local_demo.py'
         project = Path(__file__).resolve().parents[1]
         result = subprocess.run([str(project / '.venv' / 'bin' / 'python'), str(script)],
-                                capture_output=True, text=True, timeout=10)
+                                capture_output=True, text=True, timeout=10, check=False)
         self.assertEqual(result.returncode, 0, result.stderr)
         cases = json.loads(result.stdout)
         self.assertEqual(cases['real_file_read']['retrieval_status'], 'OK')

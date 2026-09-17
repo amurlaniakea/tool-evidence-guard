@@ -4,6 +4,7 @@
 import argparse
 import json
 import sys
+
 from . import check
 
 LIMIT = 1_048_576

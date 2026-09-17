@@ -2,7 +2,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 import unittest
 from datetime import datetime, timezone
+
 from test_guard import document
+
 from tool_evidence_guard import check
 
 
@@ -34,8 +36,8 @@ class RegressionTests(unittest.TestCase):
         self.assertIn('INVALID_CONTRACT', check(doc)['reasons'])
 
     def test_contract_limits_must_be_finite_and_applicable(self):
-        for field in [dict(minimum=float('nan')), dict(maximum=float('inf')),
-                      dict(type='string', minimum=1), dict(enum=[{}]), dict(minimum=None)]:
+        for field in [{'minimum': float('nan')}, {'maximum': float('inf')},
+                      {'type': 'string', 'minimum': 1}, {'enum': [{}]}, {'minimum': None}]:
             doc = document()
             doc['contract']['fields'][0].update(field)
             self.assertIn('INVALID_CONTRACT', check(doc)['reasons'])
@@ -58,6 +60,15 @@ class RegressionTests(unittest.TestCase):
         doc['contract']['max_age_seconds'] = 60
         doc['result']['observed_at'] = datetime.now(timezone.utc).isoformat()
         self.assertEqual(check(doc)['retrieval_status'], 'OK')
+
+    def test_nonstring_observed_at_returns_invalid_timestamp_not_crash(self):
+        for bad in [123, None, ['2026-01-01T00:00:00+00:00'], {'t': 1}, True]:
+            doc = document()
+            doc['contract']['max_age_seconds'] = 60
+            doc['result']['observed_at'] = bad
+            self.assertEqual(check(doc), {'retrieval_status': 'FAILED',
+                                          'reasons': ['INVALID_TIMESTAMP'],
+                                          'supported_claims': 0})
 
     def test_mixed_case_and_embedded_redaction(self):
         for value in [' [redacted] ', 'Value: [REDACTED]', 'bad\ufffdtext']:

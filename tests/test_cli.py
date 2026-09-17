@@ -6,13 +6,15 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+
 from test_guard import document
 
 
 class CLITests(unittest.TestCase):
     def run_cli(self, payload, *args):
         return subprocess.run([sys.executable, '-m', 'tool_evidence_guard', *args],
-                              input=payload, text=True, capture_output=True, timeout=10)
+                              input=payload, text=True, capture_output=True, timeout=10,
+                              check=False)
 
     def test_stdin_valid(self):
         result = self.run_cli(json.dumps(document()))
