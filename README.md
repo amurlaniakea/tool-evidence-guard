@@ -1,5 +1,8 @@
 # Tool Evidence Guard
 
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+[![License: AGPL-3.0-or-later](https://img.shields.io/badge/License-AGPL--3.0--or--later-blue.svg)](LICENSE)
+
 Deterministic, contract-based verification of tool results and exact scalar claims for LLM agents. Pure Python, zero runtime dependencies, runs fully local.
 
 LLM agents keep answering after a tool fails: they assert values the tool never returned, read `null` as zero, or relay `[REDACTED]` as a real answer ([arXiv:2609.14758](https://arxiv.org/abs/2609.14758) measured up to 45.3% dishonest answers when the failure is not signalled). This library checks the evidence **before** the answer: a pre-registered contract states what a usable result must contain, and every claim the agent wants to make must match the captured data exactly.
@@ -73,4 +76,4 @@ Design informed by *"Fabrication After Tool Failure: Tool-Augmented Agents Asser
 
 ## License
 
-AGPL-3.0-or-later © 2026 Pedro Sordo Martínez. See [LICENSE](LICENSE) and [LICENSE.AGPL](LICENSE.AGPL).
+[AGPL-3.0-or-later](LICENSE) — Copyright (C) 2026 Pedro Sordo Martínez <amurlaniakea@gmail.com>.

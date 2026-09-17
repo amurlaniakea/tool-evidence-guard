@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2026 Pedro Sordo Martínez <amurlaniakea@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """Real local file reads; false claim is explicitly a controlled test case."""
 import json

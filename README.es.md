@@ -1,10 +1,13 @@
 # Tool Evidence Guard
 
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+[![License: AGPL-3.0-or-later](https://img.shields.io/badge/License-AGPL--3.0--or--later-blue.svg)](LICENSE)
+
 Verificador local de resultados de herramientas y afirmaciones estructuradas. Python >=3.10, sin dependencias de ejecución ni API de pago. Versión 0.1.0.
 
 ## Uso
 
-Desde `/home/sil/tool-evidence-guard`:
+Desde el directorio del repositorio clonado:
 
 ```sh
 python3 -m tool_evidence_guard examples/valid.json
@@ -53,7 +56,6 @@ CLI: máximo 1 MiB, JSON UTF-8 estricto sin claves duplicadas ni NaN/Infinity. A
 - `tool_evidence_guard/__main__.py`: entrada `python -m`.
 - `tests/`: pruebas unitarias y CLI por subprocess.
 - `examples/`: entradas sintéticas y demostración local.
-- `docs/`: fundamento, verificación y límites.
 
 ## Fuente y evaluación
 
@@ -62,4 +64,6 @@ https://arxiv.org/abs/2609.14758
 
 El paper estudia un indicador generado por el modelo y una intervención de prompt. Este proyecto aplica contratos deterministas: NO reproduce su experimento ni hereda sus porcentajes. Su apéndice A no ofrece aún enlace al repositorio; la búsqueda pública realizada no localizó una implementación oficial verificable. La publicación contiene límites y diferencias entre protocolos que impiden extrapolar una tasa universal.
 
-AGPL-3.0-or-later. Copyright 2026 Pedro Sordo Martínez <amurlaniakea@gmail.com>. Texto completo: `LICENSE.AGPL`.
+## Licencia
+
+[AGPL-3.0-or-later](LICENSE) — Copyright (C) 2026 Pedro Sordo Martínez <amurlaniakea@gmail.com>.
